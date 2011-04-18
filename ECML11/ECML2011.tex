@@ -1,0 +1,379 @@
+
+%%%%%%%%%%%%%%%%%%%%%%% file typeinst.tex %%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% This is the LaTeX source for the instructions to authors using
+% the LaTeX document class 'llncs.cls' for contributions to
+% the Lecture Notes in Computer Sciences series.
+% http://www.springer.com/lncs       Springer Heidelberg 2006/05/04
+%
+% It may be used as a template for your own input - copy it
+% to a new file with a new name and use it as the basis
+% for your article.
+%
+% NB: the document class 'llncs' has its own and detailed documentation, see
+% ftp://ftp.springer.de/data/pubftp/pub/tex/latex/llncs/latex2e/llncsdoc.pdf
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\documentclass[runningheads,a4paper]{llncs}
+
+\usepackage{amssymb}
+\setcounter{tocdepth}{3}
+\usepackage{graphicx}
+\usepackage{subfigure}
+
+\usepackage{url}
+\urldef{\mailsa}\path|{alfred.hofmann, ursula.barth, ingrid.haas, frank.holzwarth,|
+\urldef{\mailsb}\path|anna.kramer, leonie.kunz, christine.reiss, nicole.sator,|
+\urldef{\mailsc}\path|erika.siebert-cole, peter.strasser, lncs}@springer.com|    
+\newcommand{\keywords}[1]{\par\addvspace\baselineskip
+\noindent\keywordname\enspace\ignorespaces#1}
+
+\begin{document}
+
+\mainmatter  % start of an individual contribution
+
+% first the title is needed
+\title{On Estimating the Partition Function}
+
+% a short form should be given in case it is too long for the running head
+\titlerunning{On Estimating the Partition Function}
+
+% the name(s) of the author(s) follow(s) next
+%z
+% NB: Chinese authors should write their first names(s) in front of
+% their surnames. This ensures that the names appear correctly in
+% the running heads and the author index.
+%
+\author{Guillaume Desjardins$^1$ \and Aaron Courville$^1$ \and Yoshua Bengio$^1$}
+%
+\authorrunning{G.Desjardins \and A.Courville \and Y.Bengio}
+% (feature abused for this document to repeat the title also on left hand pages)
+
+% the affiliations are given next; don't give your e-mail address
+% unless you accept that it will be published
+\institute{
+    $^1$Universit\'e de Montr\'eal\\
+    }
+
+%
+% NB: a more complex sample for affiliations and the mapping to the
+% corresponding authors can be found in the file "llncs.dem"
+% (search for the string "\mainmatter" where a contribution starts).
+% "llncs.dem" accompanies the document class "llncs.cls".
+%
+
+%\toctitle{Lecture Notes in Computer Science}
+%\tocauthor{Authors' Instructions}
+\maketitle
+
+\begin{abstract}
+
+\emph{
+Markov Random Fields (MRF) have proven very powerful both as density estimators and feature extractors for classification. Their use is often limited however by our inability to estimate their partition function $Z$. In this paper, we exploit the gradient descent training procedure of MRFs to {\bf track} the partition function during learning. Our method relies on estimating the change $\Delta Z$ incurred by each gradient update, and an observation process based on bridge sampling. Learning MRFs through Tempered Stochastic Maximum Likelihood, we can estimate $Z$ using no more temperatures than are required for learning. Both sources of information are then combined using a Kalman filter. On several datasets, we show that our method compares favorably to exact values and Annealed Importance Sampling (AIS) estimates of the partition function. In contrast to AIS, our method provides this estimate at each time-step, at a similar computational cost to training.
+}
+
+\keywords{Markov Random Field, Gradient Descent, Partition Function, RBM, Deep Learning}
+
+\end{abstract}
+
+\section{Introduction}
+
+Motivation:
+\begin{itemize}
+    \item undirected graphical models (UGM) are very powerful, but the
+        intractibility of the partition function limits their use. Hard to get
+        actual probabilities out of the model.
+    \item AIS is powerful but slow
+    \item UGM have proven very successfull as feature extractors and for
+        pre-training deep networks. Without Z, it is not clear how to evaluate
+        the unsupervised pre-training phase. How should one select
+        hyper-parameters ?
+    \item Proxies such as reconstruction error or pseudo-likelihood are not
+        reliable. Classification performance is unsatisfying (especially if
+        classification is not the end-goal !) and somewhat of a confounding
+        factor.
+    \item Bayesian learning of UGM
+\end{itemize}
+
+\noindent Provide the necessary technical background for:
+\begin{itemize}
+    \item RBMs
+    \item SML-PT or SML-APT (?)
+\end{itemize}
+
+\section{Previous-Work}
+
+\begin{itemize}
+    \item Annealed Importance Sampling
+    \item Noise-Contrastive Estimation
+    \item other ?
+\end{itemize}
+
+\section{Tracking the Partition Function}
+
+\subsection{Serial AIS}
+\subsection{Bridge Sampling}
+\subsection{Kalman Filter}
+
+\section{Exact Likelihood Experiments}
+
+\newpage
+\subsection{Experiment 1}
+
+\noindent {\bf Motivation}: prove that our algorithm works :)
+
+\noindent {\bf Description}: compare (exact likelihood, AIS estimate, our method) on an
+25-hidden unit RBM. Run this both for normal SML and SML-PT, varying the
+learning rate in (1e-1 .. 1e-4).
+
+\noindent {\bf Details}: perform 300k updates (same as Hannes), compute estimates at (0, 5k,
+10k, 25k, every 50k). mini-batch size of 100 for gradient, tempered mini-batch
+size of 10.
+
+\begin{figure}[!htb]
+    \centering
+    \subfigure
+    {
+        \includegraphics[scale=0.4]{figs/exp1_1_SML.pdf}
+    }
+    \subfigure
+    {
+        \includegraphics[scale=0.4]{figs/exp1_1_SMLPT.pdf}
+    }
+    \caption{Likelihood results for an RBM with 25 hidden units, trained with
+(top) SML and (bottom) SML-PT. We track the likelihood for learning rates in
+$\{1e-1, ..., 1e-4\}$, using one of three methods: exact computation, using the
+AIS estimate and using our Kalman filter estimate. (top) SML for training and
+(bottom) SML-PT for training.} 
+\end{figure}
+
+\bigskip
+\noindent {\bf Observations}:
+\begin{itemize}
+    \item Figure 1 (top): 25 hidden unit RBM trained on MNIST.  Gradient samples are obtained with standard Gibbs sampling, while the samples required by our Kalman filter are obtained via Parallel Tempering (10 chains). Both sets of particles are thus completely independent. Tracking works very well, except for the small bump at lr=1e-4, where AIS also seems to have trouble.
+    \item Figure 1 (bottom): same as above, but all samples are obtained via Parallel Tempering. This means that the samples used in the gradient and the ones used for the tracking Z are NOT independent. A subset of the samples used to track Z are the same samples used to compute the gradient at the previous timestep, but burned in with k steps of Parallel Tempering. Here k=1. This seems to introduce a severe bias in the estimate for small learning rates. This makes sense from the perspective of the fast-weight effect: the samples used to estimate Z are more correlated with the gradient samples when the learning rate is small.
+\end{itemize}
+
+\clearpage
+
+\subsection{Experiment 2}
+
+\noindent {\bf Motivation}: disect the algorithm.
+
+\noindent {\bf Description}: same as above, but show results of serial AIS
+(full, non-iterative version), iterative serial-AIS and bridge-sampling
+estimates (independently of the Kalman filter). Also show the effect of using
+samples obtained through standards Gibbs sampling instead of PT.
+
+
+\newpage
+\subsection{Experiment 3}
+
+\noindent {\bf Motivation}: show that our estimator becomes more accurate with an increased
+number of Gibbs steps for sampling Z-particles.
+
+\noindent {\bf Description}: rerun experiment 1, but varying the number of PT steps for the
+Z-particles only ! Run experiment with a number of PT steps in
+(1,3,10,25). (same numbers as Hugo's NADE paper). Negative samples used in the
+gradient should still use a single-step of PT. 
+
+\noindent {\bf Details}: same as exp 1
+
+\bigskip
+\noindent {\bf Important}: we use normal Gibbs sampling to draw sample for the
+gradient, but full Parallel Tempering to draw samples for estimating Z. The two
+sets of samples are completely independent.
+
+\begin{figure}[!htb]
+    \centering
+    \subfigure[lr=$10^{-1}$]
+    {
+        \includegraphics[scale=0.3]{figs/exp3_lr=0_100000.pdf}
+    }
+    \hspace{-1cm}
+    \subfigure[lr=$10^{-1}$]
+    {
+        \includegraphics[scale=0.3]{figs/exp3_lr=0_010000.pdf}
+    }
+    \subfigure[lr=$10^{-3}$]
+    {
+        \includegraphics[scale=0.3]{figs/exp3_lr=0_001000.pdf}
+    } 
+    \hspace{-1cm}
+    \subfigure[lr=$10^{-4}$]
+    {
+        \includegraphics[scale=0.3]{figs/exp3_lr=0_000100.pdf}
+    } 
+\caption{Likelihood results for an 25-hidden unit RBM trained using
+{\bf SML} with a single Gibbs step in the negative phase. We show both the exact
+likelihood (solid line) and the estimated likelihood using our tracking
+algorithm. To compute our estimate, we generate samples using Parallel
+Tempering with an increasing number of steps $k \in \{1,3,10\}$ and for various learning rates.}
+\end{figure}
+
+\clearpage
+
+\noindent {\bf Observation}: Figure 2, setting is similar to Fig 1 (top).
+Estimates were already pretty good. Increasing k seems to help a little bit in
+the case of lr=1e-4.
+
+\subsection{Experiment 4}
+
+\noindent {\bf Motivation}: study the relationship between the instability problem of SML (when
+the negative phase gradient is estimated improperly due to sampling issues) and
+the decreased performance of our algorithm. Run more PT steps both for samples used in
+gradient and those used for estimating Z.
+
+\noindent {\bf Description}: similar to experiment 1 with large learning rate ?? 
+
+\bigskip
+\noindent {\bf Important}: contrary to experiment 3, on every iteration, we swap a
+subset of the gradient particles with those obtained via Parallel Tempering.
+Our estimate of Z will thus rely on samples which were recently used in the
+gradient (although burned in with 1 Gibbs step since the gradient was applied).
+
+\begin{figure}[!htb]
+    \centering
+    \subfigure[lr=$10^{-1}$]
+    {
+        \includegraphics[scale=0.3]{figs/exp4_lr=0_100000.pdf}
+    }
+    \hspace{-1cm}
+    \subfigure[lr=$10^{-2}$]
+    {
+        \includegraphics[scale=0.3]{figs/exp4_lr=0_010000.pdf}
+    } 
+    \subfigure[lr=$10^{-3}$]
+    {
+        \includegraphics[scale=0.3]{figs/exp4_lr=0_001000.pdf}
+    }
+    \hspace{-1cm}
+    \subfigure[lr=$10^{-4}$]
+    {
+        \includegraphics[scale=0.3]{figs/exp4_lr=0_000100.pdf}
+    }
+\caption{Likelihood results for an 25-hidden unit RBM trained using
+{\bf SML-PT} with a single Gibbs step in the negative phase. We show both the exact
+likelihood (solid line) and the estimated likelihood using our tracking
+algorithm. To compute our estimate, we generate samples using Parallel
+Tempering with an increasing number of steps, $k \in \{1,3,10\}$. (left)
+learning rate of $0.1$ and (right) learning rate of $1e-4$.}
+\end{figure}
+
+\bigskip
+\noindent {\bf Observations}: Figure 3, setting is similar to Figure 1
+(bottom). Increasing k does not significantly reduce the bias of our estimate.
+This would seem to show bad mixing, since the samples used to track Z are still
+correlated with the gradient samples after k Gibbs steps. So much for Parallel
+Tempering ?
+
+\clearpage
+
+\section{Large-scale models and AIS}
+
+\subsection{MNIST}
+
+\noindent {\bf Motivation 1}: show that our observations from the previous section still hold for
+larger sized RBMs, when comparing to the AIS estimate. 
+
+\noindent {\bf Motivation 2}: Study the computational performance of our algorithm.
+
+\noindent {\bf Description}: vary the number of hidden units in (50,100,500,1000). Train for
+500k updates. Also vary the learning rate in (1e-1 .. 1e-4). Compare with AIS,
+making sure to identify any instabilities in training (and divergence in
+Z-estimate).
+
+\bigskip
+
+These experiments have so far only been run with a single seed. Here are the results however.
+
+\begin{figure}[!htb]
+    \centering
+    \subfigure[50 hidden units]
+    {
+        \includegraphics[scale=0.3]{figs/exp5_1_nhid=50_compact.pdf}
+    }
+    \hspace{-1cm}
+    \subfigure[100 hidden units]
+    {
+        \includegraphics[scale=0.3]{figs/exp5_1_nhid=100_compact.pdf}
+    } 
+    \subfigure[200 hidden units]
+    {
+        \includegraphics[scale=0.3]{figs/exp5_1_nhid=200_compact.pdf}
+    }
+    \hspace{-1cm}
+    \subfigure[500 hidden units]
+    {
+        \includegraphics[scale=0.3]{figs/exp5_1_nhid=500_compact.pdf}
+    }
+    \subfigure[1000 hidden units]
+    {
+        \includegraphics[scale=0.3]{figs/exp5_1_nhid=1000_compact.pdf}
+    }
+\caption{Estimated likelihood of MNIST test for various sizes of RBMs,
+estimated using both AIS and our Kalman filter estimate. We show the training
+curves for learning rates in $\{ 10^{-1},10^{-2},10^{-3},10^{-4} \}$ and
+a number of hidden units in $\{50,100,200,500,1000\}$.}
+\end{figure}
+
+\bigskip
+\noindent {\bf Observations}: Generally good results on MNIST
+\begin{itemize}
+    \item fig 4a,4b,4c: training diverges with large learning rates (0.1) when
+          learning small RBMs (50,100,200). Our tracker fails somewhat in this scenario.
+    \item fig 4d: we may see signs of overfitting using 500 hidden units and
+          learning rates of 0.01 and 0.001. Likelihood increases up to -50 at 10k
+          updates, and then drops down to -100. I will need to track training likelihood
+          to determine if its overfitting, or divergence of SML.
+    \item fig 4c: best results are surprisingly obtained with only 200 hidden
+          units and very small (1e-4) learning rate.
+    \item all figs: tracking algorithm works fairly well, unless the learning
+          algorithm itself diverges.
+\end{itemize}
+
+\clearpage
+
+\subsection{Other Datasets}
+
+\noindent {\bf Motivation 1}: show that this also works on other datasets. Emphasis should be put
+on our ability to track Z (compared to AIS estimate) versus the actual
+performance of the models. These should mostly be used to provide context and
+show that our models are performing somewhat competitively. We do not have to
+beat state-of-the-art.
+
+\noindent {\bf Motivation 2}: small datasets means that we must do
+``early-stopping'' to avoid over-fitting. Show performance with/without
+early-stopping, which only our method can provide.
+
+\noindent {\bf Description}: run 500 hidden unit RBM on the same datasets as the NADE paper. 
+
+\section{Nice-To-Haves}
+
+\begin{itemize}
+    \item case-study. Use our method to perform early-stopping during
+        pre-training. See if maximizing Z during pre-training leads to better
+        classification performance (using a linear SVM without fine-tuning).
+    \item other ?
+\end{itemize}
+
+\section{Discussion}
+
+\begin{itemize}
+    \item typical discussion stuff (pros/cons)
+    \item extended discussion of AIS divergence
+    \item what can we do with this:
+        \subitem proper early-stopping when dealing with small datasets
+        \subitem Bayesian learning of UGM
+        \subitem better criteria for monitoring pre-training
+        \subitem tool for studying unsupervised pre-training and deep learning
+        (cite Dumi's work)
+\end{itemize}
+
+AIS **may** be unstable (cite Hannes paper)
+
+\section{Conclusion}
+
+\end{document}

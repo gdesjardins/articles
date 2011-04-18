@@ -1,0 +1,395 @@
+\documentclass{article}
+\usepackage{amsmath, amsthm}
+\usepackage{amsfonts}
+
+\begin{document}
+
+\def\Ex{\mathbb{E}}
+\def\E{\mathbf{E}}
+\def\F{\mathbf{\mathcal{F}}}
+\def\x{\mathbf{x}}
+\def\h{\mathbf{h}}
+\def\v{\mathbf{v}}
+\def\nv{\mathbf{v^{{\bf -}}}}
+\def\nh{\mathbf{h^{{\bf -}}}}
+\def\b{\mathbf{b}}
+\def\c{\mathbf{c}}
+\def\W{\mathbf{W}}
+\def\C{\mathbf{C}}
+\def\P{\mathbf{P}}
+\def\T{{\bf \mathcal T}}
+\def\B{{\bf \mathcal B}}
+
+\title{On Estimating the Partition Function}
+\author{
+Guillaume Desjardins, Aaron Courville and Yoshua Bengio\\
+\texttt{\{desjagui,courvila,bengioy\}@iro.umontreal.ca}
+}
+\maketitle
+
+\section{Notation}
+
+We define the following notation:
+
+\begin{itemize}
+    \item ${\bf p}(x)$: probability distribution over $x$
+    \item $p(x)$: un-normalized probability distribution.
+    \item $Z$: partition function, i.e. ${\bf p}(x)= p(x) / Z$.
+    \item $\beta$: inverse temperature parameter, $\beta \in [0,1]$.
+    \item $M$: number of parallel chains.
+    \item $K$: number of samples used to estimate importance weights
+    \item $X_t$: t-th element of set $X$. Subscript $t$ will be used as a time index
+          while $k$ will normally be used to index into a set of samples.
+    \item $X^{(i)}$: the value of X taken by the $i$-th parallel chain.
+          $X^{(1)}$ is the value of $X$ at the nominal temperature, while
+          $X^{(M)}$ the value at the top-most temperature.
+\end{itemize}
+
+\section{Annealed Importance Sampling (AIS)}
+
+\subsection{Importance Sampling}
+\label{sec:importance}
+\def\s{\mathbf{s}}
+\def\q{\mathbf{q}}
+\def\p{\mathbf{p}}
+
+Let $\q(x), {\s}(x)$ be two probability distributions and $q(x)$ the
+corresponding un-normalized pdf. The partition function $Z_q$ of $q(x)$ can be
+written as:
+
+\begin{align}
+    Z_q &= \sum_x q(x) \\
+        &= \sum_x {\s}(x) \frac{q(x)}{{\s}(x)} \\
+        &= \sum_x {\s}(x) w(x) 
+\end{align}
+assuming ${\s}(x) > 0$ whenever $q(x) > 0$, and where $w(x) = q(x)/{\s}(x)$ are
+defined as the importance weights.
+\bigskip
+
+Denoting $\mathcal{X} = \{x_k; x_k \sim \s(x), 0 < k < K \}$, we can estimate $Z_q$ as follows:
+\begin{align}
+    Z_q \approx 1/K \sum_{x^{(k)} \in \mathcal{X}} w(x_k)
+\end{align}
+
+We can write $Z_q$ as a function of $Z_s$ (the partition function of $\s$) as follows:
+\begin{align}
+    \label{eq:importance}
+    \frac{Z_q}{Z_s} \approx 1/K \sum_{x_k \in \mathcal{X}} \frac{q(x)}{s(x)}  \\
+    \label{eq:importance}
+    \log Z_q \approx \log Z_s + \log \sum_{x_k \in \mathcal{X}} \frac{q(x)}{s(x)} - \log K
+\end{align}
+\bigskip
+
+
+(Minka,2005) showed that minimizing the variance of the importance sampling
+estimate of $Z$ is equivalent to minimizing the KL-divergence of ${\s}$ and
+${\q}$.  The above will therefore work well if $\s \approx \q$.
+
+\subsection{AIS}
+
+Unfortunately, it might be difficult to find $\s$ such that (1) it is easy to
+sample from, (2) its partition function is known and (3) $\s$ is close enough to
+$\q$. To get around (3), one can define a set of intermediate distributions
+$\s_i(x)$, which ``bridge the gap'' between $\s$ and $\p$.  \bigskip
+
+Let $T_1$ be a transition operator which leaves $\s_1$ invariant:
+\begin{align}
+    \s_1(x_1) = \sum_{x_2} \s_1(x_2) T_1(x_1; x_2)
+\end{align}
+
+\begin{align}
+    Z_q &= \sum_{x_1} \s_1(x_1) \frac{q(x_1)}{\s_1(x_1)} \\
+        &= \sum_{x_1} \sum_{x_2} \s_1(x_2) T_1(x_1; x_2) \frac{q(x_1)}{\s_1(x_1)} \\
+        &= \sum_{x_1} \sum_{x_2} 
+            \frac{s_1(x_2)}{Z_1} T_1(x_1; x_2) q(x_1) \frac{Z_1}{s_1(x_1)} \\
+        &= \sum_{x_1} \sum_{x_2} 
+           \s_2(x_2) T_1(x_1; x_2) \frac{s_1(x_2)}{\s_2(x_2)} \frac{q(x_1)}{s_1(x_1)}
+\end{align}
+
+Recursively, this leads to:
+\begin{align}
+    \label{eq:ais1}
+    Z_q = \sum_{x_1} \sum_{x_2} \cdots \sum_{x_n}
+    & \s_n(x_n) T_{n-1}(x_{n-1}; x_n) \cdots T_1(x_1; x_2) \\ \nonumber
+    & \frac{s_{n-1}(x_n)}{\s_n(x_n)} 
+      \frac{s_{n-2}(x_{n-1})}{s_{n-1}(x_{n-1})} \cdots
+      \frac{s_1(x_2)}{s_2(x_2)}
+      \frac{q(x_1)}{s_1(x_1)}
+\end{align}
+\bigskip
+
+By flipping the ordering of the indices of $s$, and denoting $q$ as $s_n$, we
+rewrite Eq.~(\ref{eq:ais1}) as follows. This form will prove more ammenable for
+the next section.
+
+\begin{align}
+    \frac{Z_n}{Z_0} = \sum_{x_0} \sum_{x_1} \cdots \sum_{x_{n-1}}
+    & s_0(x_0) T_1(x_1; x_0) \cdots T_{n-1}(x_{n-1}; x_{n-2}) \\ \nonumber
+    & \frac{s_1(x_0)}{s_0(x_0)} 
+      \frac{s_2(x_1)}{s_1(x_1)} \cdots
+      \frac{s_{n-1}(x_{n-2})}{s_{n-2}(x_{n-2})}
+      \frac{s_n(x_{n-1})}{s_{n-1}(x_{n-1})}
+\end{align}
+
+\bigskip
+In practice, we replace the expectations above with an average over a finite
+set of particles. This yields the following algorithm:
+\bigskip
+
+{\bf Algorithm 1: Standard or Parallel AIS}
+\begin{itemize}
+    \item Repeat for $i \in [1..M]$:
+    \subitem $\bullet$ sample $x_0 \sim s_0$.
+    \subitem $\bullet$ sample $x_1 \sim T_1$.
+    \subitem $\bullet \cdots$
+    \subitem $\bullet$ sample $x_{n-1} \sim T_{n-1}$.
+    \subitem $\bullet$ compute 
+    $w^{(i)} = \frac{s_1^*(x_0)}{s_0^*(x_0)} 
+               \frac{s_2^*(x_1)}{s_1^*(x_1)} \cdots
+               \frac{s_{n-1}^*(x_{n-2})}{s_{n-2}^*(x_{n-2})}
+               \frac{s_n^*(x_{n-1})}{s_{n-1}^*(x_{n-1})}$
+    \item $\log Z_n \approx \log Z_0 + \log \sum_{i=1}^M w^{(i)} - \log M$.
+\end{itemize}
+\bigskip
+
+
+\bigskip
+When estimating partition functions for RBMs, one can simply use the
+intermediate distribution 
+$\p^{(i)}(\v) = s_i(\v) = \exp(- \beta_i \F(\v)) / Z_i $, 
+where $\F$ is the free-energy function defined by the RBM over the visible
+units. $\beta_i \in [0,1]$ is an inverse temperature
+parameter with $i \in [1,M]$. 
+This has the following properties: 
+\begin{itemize}
+    \item a fine grid for $\beta_i$ ensures that contiguous $\p^{(i)}$ will be close to one another.
+    \item we can compute $Z^{(M)}$ (partition function of model with 0 inverse
+        temperature) exactly, with $Z^{(M)} = 2^N$ ($N$ the number of hidden units).
+\end{itemize}
+
+
+
+
+
+
+\section{Tracking the Partition Function}
+\label{sec:tracking}
+
+AIS allows us to estimate the partition function of an energy-based model at
+any point during training. Doing so can be very costly however, since AIS can
+require thousands of parallel chains to work properly. This can be
+prohibitively expensive for performing early stopping, or regularly monitoring
+the training cost.  Here, we present a method for {\bf tracking} the partition
+function {\bf during } the learning process. We are specifically interested in
+gradient-based learning where parameters are updated iteratively. We denote
+$p_0$ as the model initialized with parameters $\theta_0$, and $p_t$ the model
+with parameters $\theta_t$ obtained after $t$ gradient updates.
+\bigskip
+
+\subsection{Iterative Importance Sampling}
+\label{sec:iterative_is}
+
+Given the importance sampling method of Section~\ref{sec:importance}, the
+simplest method one could use to track the partition function during learning,
+is to apply Eq.~(\ref{eq:importance}) iteratively, after each gradient update.
+This yields the following algorithm.
+\bigskip
+
+{\bf Algorithm 2: Tracking Z using Iterative Importance Sampling}
+\begin{itemize}
+    \item Initialize model $\p_0$ (so as to make $Z_0$ easy to compute).
+    \item Compute $Z_0$ and initialize $log\_Z = Z_0$.
+    \item For $t \in [0,\dots,T-1]$:
+    \subitem $\bullet$ compute gradient term $\Delta \theta$ using CD or SML.
+    \subitem $\bullet$ generate samples $\mathcal{X}_t = \{x_k; x_k \sim \p_t, 0 < k < K \}$.
+    \subitem $\bullet$ $\theta \leftarrow \theta - \epsilon \Delta \theta$.
+    \subitem $\bullet$ update $log\_Z$ using Eq.~(\ref{eq:importance}) and $\mathcal{X}_t$.
+    \item $\log Z_T \approx log\_Z$.
+\end{itemize}
+\bigskip
+
+
+\subsection{Serial AIS}
+\label{sec:serial_ais}
+
+One can directly use AIS to estimate $Z_T$ (partition function of model
+obtained after $T$ gradient updates) by using $\{\p_t, t \in [0,T-1]\}$ as the
+intermediate distributions. This yields the following algorithm for
+simultaneously training the RBM and estimating its partition function. 
+\bigskip
+
+{\bf Algorithm 3: Serial AIS}
+\begin{itemize}
+    \item Initialize model $\p_0$ (so as to make $Z_0$ easy to compute).
+    \item Estimate or compute its partition function $Z_0$.
+    \item $log\_w_k = 0$, $\forall k \in [1,K]$.
+    \item For $t \in [0,\dots,T-1]$:
+    \subitem $\bullet$ fetch data $x^+_k$ and compute $h^+_{t,k} = \p_t(h=1|v=x^+_k)$, $\forall k$.
+    \subitem $\bullet$ sample $x^-_{t,k} \sim \p_t$ and compute $h^-_{t,k} = \p_t(h=1|v=x^-_{t,k})$, $\forall k$.
+    \subitem $\bullet$ sample $x_{t,k} \sim \p_t$, $\forall k$.
+    \subitem $\bullet$ $log\_w_k \leftarrow log\_w_k - p_t(x_{t,k})$.
+    \subitem $\bullet$ $W \leftarrow W - \epsilon (<x^+ h^+_t> - < x^-_t h^-_t >)$.
+    \subitem $\bullet$ $log\_w_k \leftarrow log\_w_k + p_{t+1}(x_{t,k}, h_{t,k})$.
+    \item $\log Z_T \approx \log Z_0 + \log \sum_{k=1}^K \exp(log\_w_k) - \log K$.
+\end{itemize}
+
+\subsection{Taylor Approximation}
+\label{sec:taylor}
+
+Another possible method for tracking the partition function, involves an
+iterative algorithm which uses a Taylor expansion of $\log Z$ in the
+inner-loop. 
+\bigskip
+
+Recall that:
+\begin{align}
+    \log Z_t = \log \sum_{\v} p_t(\v) 
+    = \log \sum_{\v} \exp(-\mathcal{F}_t(\v)
+    = \log \sum_{\v} \exp(-\mathcal{F}(\v; \theta_t))
+\end{align}
+
+Denoting $\Delta \theta_t$ as the change of parameters between models $\p_t$
+and $\p_{t+1}$, we can write to a first-order approximation:
+\begin{align}
+    \label{eq:taylor1}
+    \log Z_{t+1} &\approx 
+        \log Z_t + 
+        \left. \Delta \theta \cdot \frac {\partial \log Z} {\partial \theta} \right|_{\theta=\theta_t} \nonumber \\
+        &\approx  
+            \log Z_t + 
+            \Delta \theta \cdot \frac{1}{Z_t}
+            \sum_{\v} - \exp(-\mathcal{F}(\v; \theta_t)) \left. \frac {\partial \mathcal{F}(\v)} {\partial \theta} \right|_{\theta=\theta_t} \nonumber \\
+        &\approx  
+            \log Z_t - 
+            \Delta \theta \cdot
+            \sum_{\v} \p(\v; \theta_t) \left. \frac {\partial \mathcal{F}(\v)} {\partial \theta} \right|_{\theta=\theta_t}
+    %\right|_{\theta=\theta_t}
+\end{align}
+\bigskip
+
+By approximating the expectation of Eq.~(\ref{eq:taylor1}) with a sample average, we get:
+\begin{align}
+    \label{eq:taylor2}
+    \log Z_{t+1} &\approx 
+            \log Z_t -
+            \Delta \theta \cdot \frac{1}{K}
+            \sum_{x \in \mathcal{X}_t} \left. \frac {\partial \mathcal{F}(x)} {\partial \theta} \right|_{\theta=\theta_t}
+\end{align}
+where $\mathcal{X}_ = \{x_k; x_k \sim \p_t(\v), 0 < k < K \}$.
+\bigskip
+
+
+This leads to an algorithm almost identical to Alg. 2, where we replace
+Eq.~(\ref{eq:importance}) with Eq.~(\ref{eq:taylor2}).
+
+\subsection{Online Noise-Contrastive Estimation}
+\label{sec:noise}
+
+(TODO)
+
+\section{Integrating All Sources of Information}
+\label{sec:grid}
+\def\dz{{\Delta \zeta}}
+
+\subsection{Bridge Sampling}
+\label{sec:bridge}
+
+Given two un-normalized distributions $p_0(x)$ and $p_1(x)$, one can use
+bridge sampling to estimate the ratio of their partition functions
+$Z_1/Z_0$. Denoting $x_{0,k} \sim \p_0$ and $x_{1,k} \sim \p_1$ 
+bridge sampling gives us the following relationship:
+
+\begin{align}
+    \label{eq:bridge1}
+    \frac{Z_1}{Z_0} &= \left. \sum_{k=1}^K \frac{p_*(x_{0,k})}{p_0(x_{0,k})} 
+                       \right/ \sum_{k=1}^K \frac{p_*(x_{1,k})}{p_1(x_{1,k})}
+\end{align}
+where $p_*^{(opt)}(x) = \frac{p_0(x) p_1(x)}{r p_0(x) + p_1(x)}$ and
+$r=Z_1/Z_0$. Since we do not know the value of $r$, we can start with an
+estimate and bootstrap from there.
+
+\bigskip
+For convenience, we rewrite Eq.~(\ref{eq:bridge1}) as follows:
+\begin{align}
+\log Z_1 - \log Z_0 &= \log \sum_k u_k - \log \sum_k v_k
+\end{align}
+
+with 
+$u_k = \frac{p_*(x_{0,k})}{p_0(x_{0,k})}$ and
+$v_k = \frac{p_*(x_{1,k})}{p_1(x_{1,k})}$.
+
+
+\bigskip
+\subsection{Full-lattice Kalman Filter}
+
+\def\w{\mathbf{w}}
+\def\u{\mathbf{u}}
+\def\v{\mathbf{v}}
+
+When training energy-based model with Parallel Tempering (PT), we now have two
+sources of information which can be combined to precisely compute an estimate
+of $\log Z_t$. The algorithms of Section \ref{sec:tracking} can be used to
+track the log-partition function $\log Z_t^{(i)}$ of each tempered model
+$\p_t^{(i)}$ independently. At the same time, bridge sampling can be applied at
+each time-step between all pairs of adjacent tempered chains to provide
+estimates of $\Delta Z_t^{(i)} = Z_t^{(i+1)} - Z_t^{(i)}$. Below, we show how
+both of these estimates can be leveraged through a Kalman filter. We start with
+a bit of notation. 
+
+\bigskip
+Let us define
+$\zeta_t^{(i)} = \log Z_t^{(i)}$ and 
+$\zeta_t = [\zeta_t^{(1)} \ldots \zeta_t^{(M)}]^T$. $\w_t^{(i)}$ is the random
+variable corresponding to the ``serial'' importance weights of models
+$(\p_{t-1}^{(i)},\p_t^{(i)})$. Similarly, $\u_t^{(i)}$ and $\v_t^{(i)}$ are the
+r.v. corresponding to the importance weights obtained by applying
+bridge-sampling to models $(\p_t^{(i+1)},\p_t^{(i)})$ and defined in
+Section~\ref{sec:bridge}.  $w_{t,k}^{(i)}$, $u_{t,k}^{(i)}$, $v_{t,k}^{(i)}$
+are instantations of these random variables for $k \in [1,K]$.
+
+\bigskip
+We define the state-transition model of the Kalman filter as follows:
+\begin{align}
+    \zeta_t = A \zeta_{t-1} + U_t + \epsilon_t
+\end{align}
+where:
+\begin{align}
+A &=\left[ \begin{array}{rrr}
+     1 & 0      &  0      \\
+     0 & 1      &  \vdots \\
+       & \ldots &         \\
+     0 & 0      &  0 
+\end{array} \right] \nonumber \\
+U_t^{(i)} &= \left\{ \begin{array}{ll}
+     N \log(2)                 & \text{ if } i=M \\
+     \log \sum_k w_{t,k}^{(i)} & \text{ otherwise}
+\end{array} \right. \nonumber \\
+    \epsilon_t &= \mathcal{N}(0, \sigma_t^2 I) \nonumber \\
+{\sigma_t^{(i)}}^2 &= \left\{ \begin{array}{ll}
+     0                         & \text{ if } i=M \\
+     \frac {var[w_t^{(i)}]} {\sum_k w_{t,k}^{(i)}}. & \text{ otherwise}
+\end{array} \right. \nonumber
+\end{align}
+
+
+\bigskip
+The observation model is given by:
+\begin{align}
+    \dz_t = H \zeta_t + \eta_t
+\end{align}
+where:
+\begin{align}
+H=\left[ \begin{array}{rrrrr}
+    -1 & +1 &  0     &  0 &        \\
+     0 & -1 & +1     &  0 & \vdots \\
+       &    & \ldots &    &        \\
+     0 &  0 &  0     & -1 & +1
+\end{array} \right] \nonumber \\
+\eta_t = \mathcal{N}(0, \alpha_t^2 I) \nonumber \\
+{\alpha_t^{(i)}}^2 = \frac {var[u_t^{(i)}]} {\sum_k u_{t,k}^{(i)}} +
+                     \frac {var[v_t^{(i)}]} {\sum_k v_{t,k}^{(i)}} \nonumber
+\end{align}
+In practice, we approximate the random variable $\dz_t^{(i)}$ with the quantity
+$\log \sum_k u_{t,k}^{(i)} - \log \sum_k v_{t,k}^{(i)}$. 
+
+\end{document}
